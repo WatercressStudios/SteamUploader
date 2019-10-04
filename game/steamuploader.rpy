@@ -67,6 +67,8 @@ init python:
     steam_password = ""
     uploading_message = ""
     is_running = False
+    is_steamguard = False
+    steam_guard_code = ""
 
     if os.path.isfile("{0}/steamuploader.config".format(root_dir)):
         config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
@@ -132,7 +134,7 @@ init python:
         global project_build_file, project_dlc_files
         global project_app_id, project_depot_id, project_depot_id_dlc
         global app_depotline_template, app_template, depot_template
-        global steam_username, steam_password, uploading_message, is_running
+        global steam_username, steam_password, uploading_message, is_running, is_steamguard
 
         if not os.path.isdir("{0}/SteamPipeContentBuilder".format(root_root_dir)):
             shutil.copytree("{0}/SteamPipeContentBuilder".format(root_dir), "{0}/SteamPipeContentBuilder".format(root_root_dir))
@@ -185,7 +187,6 @@ init python:
             builder_path = '{0}/SteamPipeContentBuilder/builder/steamcmd.exe"'.format(root_root_dir)
             i = builder_path.index(':') + 1
             builder_path = builder_path[:i] + '"' + builder_path[i:]
-            steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
             command = [builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit"]
         elif platform.system() == "Darwin":
             builder_path = '"{0}/SteamPipeContentBuilder/builder_osx/steamcmd.sh"'.format(root_root_dir)
@@ -196,11 +197,16 @@ init python:
             steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
             command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
 
-        print ' '.join(command).replace('\\', '/')
         return_code = os.system(' '.join(command).replace('\\', '/'))
-
-        uploading_message = "Done! Return code is {0}".format(return_code)
-        is_running = False
+        if return_code == 1280:
+            uploading_message = "Steam Guard requires a code sent to your email.".format(return_code)
+            is_steamguard = True
+        elif return_code == 0:
+            uploading_message = "Done! Upload was successful.".format(return_code)
+            is_running = False
+        else:
+            uploading_message = "Error: return code {0}".format(return_code)
+            is_running = False
         renpy.restart_interaction()
 
 
@@ -280,7 +286,52 @@ init python:
 
             uploading_message = "Generating files...\n\nPlease wait..."
             is_running = True
+            is_steamguard = False
+            steam_guard_code = ""
             renpy.show_screen("steam_upload_uploading")
+            renpy.restart_interaction()
+
+    class SteamUploader_ChangeGuardCode:
+        def __call__(self, i):
+            global steam_guard_code
+
+            steam_guard_code = i
+            renpy.restart_interaction()
+
+    class SteamUploader_SubmitGuardCode:
+        def __call__(self):
+            global uploading_message, is_running, is_steamguard, steam_guard_code
+            global root_root_dir, output_dir, project_dir
+
+            if steam_username == "" or steam_password == "":
+                return
+
+            uploading_message = "Verifying Steam Guard code...\n\nPlease wait..."
+            is_steamguard = False
+            renpy.restart_interaction()
+
+            output_dir = "{0}/steamupload/output".format(project_dir)
+            if platform.system() == "Windows":
+                builder_path = '{0}/SteamPipeContentBuilder/builder/steamcmd.exe"'.format(root_root_dir)
+                i = builder_path.index(':') + 1
+                builder_path = builder_path[:i] + '"' + builder_path[i:]
+                command = [builder_path, '"set_steam_guard_code {0}"'.format(steam_guard_code), "+login", steam_username, steam_password, "+quit"]
+            elif platform.system() == "Darwin":
+                builder_path = '"{0}/SteamPipeContentBuilder/builder_osx/steamcmd.sh"'.format(root_root_dir)
+                steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
+                command = ['sh', builder_path, '"+set_steam_guard_code {0}"'.format(steam_guard_code), "+login", steam_username, steam_password, "+quit", "2>&1", ">", steampipe_output_path]
+            else:
+                builder_path = '"{0}/SteamPipeContentBuilder/builder_linux/steamcmd.sh"'.format(root_root_dir)
+                steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
+                command = ['sh', builder_path, '"+set_steam_guard_code {0}"'.format(steam_guard_code), "+login", steam_username, steam_password, "+quit", "2>&1", ">", steampipe_output_path]
+
+            return_code = os.system(' '.join(command).replace('\\', '/'))
+            if return_code == 0:
+                uploading_message = "Done! You may now attempt\nto upload again.".format(return_code)
+                is_running = False
+            else:
+                uploading_message = "Error: return code {0}".format(return_code)
+                is_steamguard = True
             renpy.restart_interaction()
 
 screen steam_uploader_main:
@@ -314,6 +365,10 @@ screen steam_uploader_main:
                             color "fff"
                             align (0.5, 0.5)
                             text_align 0.5
+                if len(project_list) == 0:
+                    null height 50
+                    label "To create a build, use 'Build Distributions' within RenPy Launcher\nand select the '...for Markets' option.":
+                        align (0.5, 0.5)
                 if not project_build_file is None:
                     null height 30
                     label "{b}>> PACKAGE INFO <<{/b}"
@@ -502,7 +557,43 @@ screen steam_upload_uploading:
                 align (0.5, 0.5)
                 label uploading_message:
                     align (0.5, 0.5)
-                if not is_running:
+                if is_steamguard:
+                    hbox:
+                        spacing 5
+                        fixed:
+                            xysize (100, 35)
+                            text "Code:" align (1.0, 0.5)
+                        if project_input_editing == "guardcode":
+                            frame:
+                                xysize (180, 35)
+                                input:
+                                    default steam_guard_code
+                                    length 8
+                                    copypaste True
+                                    changed SteamUploader_ChangeGuardCode()
+                        else:
+                            frame:
+                                xysize (180, 35)
+                                textbutton steam_guard_code:
+                                    xysize (170, 35)
+                                    align (0.5, 0.5)
+                                    action SteamUploader_ChangeCurrentEditing("guardcode")
+
+                        null width 30
+                        button:
+                            background Solid("222")
+                            hover_background Solid("225e")
+                            xysize (250, 50)
+                            margin (0,0)
+                            padding (0,0)
+                            yoffset -10
+                            action [ SteamUploader_SubmitGuardCode() ]
+                            text "SUBMIT":
+                                size 20
+                                color "fff"
+                                align (0.5, 0.5)
+                                text_align 0.5
+                elif not is_running:
                     button:
                         background Solid("222")
                         hover_background Solid("225e")
