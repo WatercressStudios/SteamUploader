@@ -182,16 +182,22 @@ init python:
         renpy.restart_interaction()
 
         if platform.system() == "Windows":
-            builder_path = "'{0}/SteamPipeContentBuilder/builder/steamcmd.exe'".format(root_root_dir)
-            command = [builder_path, "+login", steam_username, steam_password, "+run_app_build_http", "'{0}/app_{1}.vdf'".format(scripts_dir, project_app_id), "+quit"]
+            builder_path = '{0}/SteamPipeContentBuilder/builder/steamcmd.exe"'.format(root_root_dir)
+            i = builder_path.index(':') + 1
+            builder_path = builder_path[:i] + '"' + builder_path[i:]
+            steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
+            command = [builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit"]
         elif platform.system() == "Darwin":
-            builder_path = "'{0}/SteamPipeContentBuilder/builder_osx/steamcmd.sh'".format(root_root_dir)
-            command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", "'{0}/app_{1}.vdf'".format(scripts_dir, project_app_id), "+quit"]
+            builder_path = '"{0}/SteamPipeContentBuilder/builder_osx/steamcmd.sh"'.format(root_root_dir)
+            steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
+            command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
         else:
-            builder_path = "'{0}/SteamPipeContentBuilder/builder_linux/steamcmd.sh'".format(root_root_dir)
-            command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", "'{0}/app_{1}.vdf'".format(scripts_dir, project_app_id), "+quit"]
+            builder_path = '"{0}/SteamPipeContentBuilder/builder_linux/steamcmd.sh"'.format(root_root_dir)
+            steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
+            command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
 
-        return_code = os.system(' '.join(command))
+        print ' '.join(command).replace('\\', '/')
+        return_code = os.system(' '.join(command).replace('\\', '/'))
 
         uploading_message = "Done! Return code is {0}".format(return_code)
         is_running = False
