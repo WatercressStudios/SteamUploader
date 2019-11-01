@@ -63,6 +63,7 @@ init python:
     project_app_id = ""
     project_depot_id = ""
     project_depot_id_dlc = {}
+    projects_info = {}
     steam_username = ""
     steam_password = ""
     uploading_message = ""
@@ -74,6 +75,7 @@ init python:
         config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
         steam_username = config_json.get('username', '')
         steam_password = config_json.get('password', '')
+        projects_info = config_json.get('projects', {})
 
     if os.path.isfile("{0}/steamupload/projectinfo.config".format(project_dir)):
         config_json = json.loads(open("{0}/steamupload/projectinfo.config".format(project_dir), "r").read())
@@ -85,14 +87,24 @@ init python:
         renpy.restart_interaction()
 
     def SteamUploader_LoadProject(project_to_load):
-        global project_name, project_dir, root_root_dir
+        global project_name, project_dir, root_root_dir, projects_info
         global project_build_file, project_dlc_files
         global project_input_editing, project_app_id, project_depot_id, project_depot_id_dlc
+
+        project_build_file = None
+        project_dlc_files = None
+        project_input_editing = None
+        project_input_editing = None
+        project_app_id = ""
+        project_depot_id = ""
+        project_depot_id_dlc = {}
 
         project_name = project_to_load
         project_dir = '{0}/{1}'.format(root_root_dir, project_name)
         if not os.path.isdir("{0}/steamupload".format(project_dir)):
             os.makedirs("{0}/steamupload".format(project_dir))
+        project_parent_name = project_name[:-len('-dists')]
+        project_parent_name = project_parent_name[:project_parent_name.rindex('-')]
 
         i = 0
         project_dlc_files = []
@@ -106,10 +118,12 @@ init python:
                 project_dlc_files.append(g)
                 project_depot_id_dlc[i] = ""
 
+        project_app_id = projects_info.get(project_parent_name,{}).get('appid','')
+        project_depot_id = projects_info.get(project_parent_name,{}).get('depotid','')
         if os.path.isfile("{0}/steamupload/projectinfo.config".format(project_dir)):
             config_json = json.loads(open("{0}/steamupload/projectinfo.config".format(project_dir), "r").read())
-            project_app_id = config_json.get('appid', '')
-            project_depot_id = config_json.get('depotid', '')
+            project_app_id = config_json.get('appid', project_app_id)
+            project_depot_id = config_json.get('depotid', project_depot_id)
             project_depot_id_dlc = config_json.get('dlc', {})
 
     if len(project_list) > 0:
@@ -215,6 +229,7 @@ init python:
             self.i = i
         def __call__(self):
             global project_list
+
             SteamUploader_LoadProject(project_list[self.i])
             SteamUploader_VarUpdate()
 
@@ -228,7 +243,7 @@ init python:
 
     class SteamUploader_ChangeAppID:
         def __call__(self, i):
-            global project_app_id, project_depot_id, project_depot_id_dlc, project_dir
+            global projects_info, project_name, root_dir, project_app_id, project_depot_id, project_depot_id_dlc, project_dir
             project_app_id = i
             SteamUploader_VarUpdate()
 
@@ -238,11 +253,23 @@ init python:
             config_json['dlc'] = project_depot_id_dlc
             open("{0}/steamupload/projectinfo.config".format(project_dir), "w").write(json.dumps(config_json))
 
+            project_parent_name = project_name[:-len('-dists')]
+            project_parent_name = project_parent_name[:project_parent_name.rindex('-')]
+            if not project_parent_name in projects_info:
+                projects_info[project_parent_name] = {}
+            projects_info[project_parent_name]['appid'] = project_app_id
+
+            config_json = {}
+            if os.path.isfile("{0}/steamuploader.config".format(root_dir)):
+                config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
+            config_json['projects'] = projects_info
+            open("{0}/steamuploader.config".format(root_dir), "w").write(json.dumps(config_json))
+
     class SteamUploader_ChangeDepotID:
         def __init__(self, dlc=None):
             self.dlc = dlc
         def __call__(self, i):
-            global project_app_id, project_depot_id, project_depot_id_dlc, project_dir
+            global projects_info, project_name, root_dir, project_app_id, project_depot_id, project_depot_id_dlc, project_dir
             if not self.dlc is None:
                 project_depot_id_dlc[self.dlc] = i
             else:
@@ -255,6 +282,18 @@ init python:
             config_json['dlc'] = project_depot_id_dlc
             open("{0}/steamupload/projectinfo.config".format(project_dir), "w").write(json.dumps(config_json))
 
+            project_parent_name = project_name[:-len('-dists')]
+            project_parent_name = project_parent_name[:project_parent_name.rindex('-')]
+            if not project_parent_name in projects_info:
+                projects_info[project_parent_name] = {}
+            projects_info[project_parent_name]['depotid'] = project_depot_id
+
+            config_json = {}
+            if os.path.isfile("{0}/steamuploader.config".format(root_dir)):
+                config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
+            config_json['projects'] = projects_info
+            open("{0}/steamuploader.config".format(root_dir), "w").write(json.dumps(config_json))
+
     class SteamUploader_ChangeUsername:
         def __call__(self, i):
             global steam_username, steam_password, root_dir
@@ -262,8 +301,9 @@ init python:
             SteamUploader_VarUpdate()
 
             config_json = {}
+            if os.path.isfile("{0}/steamuploader.config".format(root_dir)):
+                config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
             config_json['username'] = steam_username
-            config_json['password'] = steam_password
             open("{0}/steamuploader.config".format(root_dir), "w").write(json.dumps(config_json))
 
     class SteamUploader_ChangePassword:
@@ -273,7 +313,8 @@ init python:
             SteamUploader_VarUpdate()
 
             config_json = {}
-            config_json['username'] = steam_username
+            if os.path.isfile("{0}/steamuploader.config".format(root_dir)):
+                config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
             config_json['password'] = steam_password
             open("{0}/steamuploader.config".format(root_dir), "w").write(json.dumps(config_json))
 
