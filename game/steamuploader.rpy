@@ -11,32 +11,32 @@ init python:
 
     app_template = """"appbuild"
 {{
-	"appid" "{appid}"
-	"desc" "{appname}"
-	"buildoutput" "{outputpath}"
-	"contentroot" ""
-	"setlive" ""
-	"preview" "0"
-	"local"	""
-	"depots"
-	{{
+    "appid" "{appid}"
+    "desc" "{appname}"
+    "buildoutput" "{outputpath}"
+    "contentroot" ""
+    "setlive" ""
+    "preview" "0"
+    "local"	""
+    "depots"
+    {{
 {depotlist}
-	}}
+    }}
 }}
 """
 
     depot_template = """"DepotBuildConfig"
 {{
-	"DepotID" "{depotid}"
-	"desc" "{depotname}"
-	"contentroot" "{contentpath}"
-	"FileMapping"
-	{{
-		"LocalPath" "*"
-		"DepotPath" "."
-		"recursive" "1"
-	}}
-	"FileExclusion" "*.pdb"
+    "DepotID" "{depotid}"
+    "desc" "{depotname}"
+    "contentroot" "{contentpath}"
+    "FileMapping"
+    {{
+        "LocalPath" "*"
+        "DepotPath" "."
+        "recursive" "1"
+    }}
+    "FileExclusion" "*.pdb"
 }}
 """
 
@@ -186,7 +186,7 @@ init python:
             contentpath="{0}/{1}".format(content_dir, project_build_file[:-4]))
         )
         with zipfile.ZipFile("{0}/{1}".format(project_dir, project_build_file), 'r') as zipObj:
-           zipObj.extractall(content_dir)
+            zipObj.extractall(content_dir)
 
         i = 0
         for dlc in project_dlc_files:
