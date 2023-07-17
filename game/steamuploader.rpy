@@ -433,7 +433,7 @@ screen steam_uploader_main:
                             input:
                                 default project_app_id
                                 allow "0123456789"
-                                length 12
+                                length 20
                                 copypaste True
                                 changed SteamUploader_ChangeAppID()
                         else:
@@ -449,7 +449,7 @@ screen steam_uploader_main:
                             input:
                                 default project_depot_id
                                 allow "0123456789"
-                                length 12
+                                length 20
                                 copypaste True
                                 changed SteamUploader_ChangeDepotID()
                         else:
@@ -481,7 +481,7 @@ screen steam_uploader_main:
                                     input:
                                         default project_depot_id_dlc.get(unicode(i), "")
                                         allow "0123456789"
-                                        length 12
+                                        length 20
                                         copypaste True
                                         changed SteamUploader_ChangeDepotID(i)
                                 else:
@@ -501,7 +501,7 @@ screen steam_uploader_main:
                         xysize (200, 35)
                         input:
                             default steam_username
-                            length 12
+                            length 30
                             copypaste True
                             changed SteamUploader_ChangeUsername()
                 else:
@@ -519,7 +519,7 @@ screen steam_uploader_main:
                         xysize (200, 35)
                         input:
                             default steam_password
-                            length 12
+                            length 30
                             copypaste True
                             changed SteamUploader_ChangePassword()
                 else:
