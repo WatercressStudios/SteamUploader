@@ -11,32 +11,32 @@ init python:
 
     app_template = """"appbuild"
 {{
-	"appid" "{appid}"
-	"desc" "{appname}"
-	"buildoutput" "{outputpath}"
-	"contentroot" ""
-	"setlive" ""
-	"preview" "0"
-	"local"	""
-	"depots"
-	{{
+    "appid" "{appid}"
+    "desc" "{appname}"
+    "buildoutput" "{outputpath}"
+    "contentroot" ""
+    "setlive" ""
+    "preview" "0"
+    "local"	""
+    "depots"
+    {{
 {depotlist}
-	}}
+    }}
 }}
 """
 
     depot_template = """"DepotBuildConfig"
 {{
-	"DepotID" "{depotid}"
-	"desc" "{depotname}"
-	"contentroot" "{contentpath}"
-	"FileMapping"
-	{{
-		"LocalPath" "*"
-		"DepotPath" "."
-		"recursive" "1"
-	}}
-	"FileExclusion" "*.pdb"
+    "DepotID" "{depotid}"
+    "desc" "{depotname}"
+    "contentroot" "{contentpath}"
+    "FileMapping"
+    {{
+        "LocalPath" "*"
+        "DepotPath" "."
+        "recursive" "1"
+    }}
+    "FileExclusion" "*.pdb"
 }}
 """
 
