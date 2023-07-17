@@ -44,6 +44,8 @@ init python:
     for p in config.searchpath:
         if p.endswith('/game'):
             root_dir = p[:-5]
+        elif p.endswith('\\\\game'):
+            root_dir = p[:-7]
     root_root_dir = os.path.abspath(root_dir+'/..')
 
     project_list = []
