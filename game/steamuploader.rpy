@@ -52,15 +52,15 @@ init python:
 
     project_list = []
     for p in os.listdir(root_root_dir):
-        f = '{0}/{1}'.format(root_root_dir, p)
+        f = os.path.join(root_root_dir, p)
         if not os.path.isdir(f):
             continue
         if f.endswith('-dists'):
             for g in os.listdir(f):
-                if os.path.isfile('{0}/{1}/{2}'.format(root_root_dir, p, g)) and g.endswith('-market.zip'):
+                if os.path.isfile(os.path.join(root_root_dir, p, g)) and g.endswith('-market.zip'):
                     project_list.append(p)
     project_name = "NO MARKETPLACE BUILD FOUND"
-    project_dir = '{0}/{1}'.format(root_root_dir, project_name)
+    project_dir = os.path.join(root_root_dir, project_name)
     project_build_file = None
     project_dlc_files = None
     project_input_editing = None
@@ -75,14 +75,15 @@ init python:
     is_steamguard = False
     steam_guard_code = ""
 
-    if os.path.isfile("{0}/steamuploader.config".format(root_dir)):
-        config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
+    if os.path.isfile(os.path.join(root_dir, "steamuploader.config")):
+        config_json = json.loads(open(os.path.join(root_dir, "steamuploader.config"), "r").read())
         steam_username = config_json.get('username', '')
         steam_password = config_json.get('password', '')
         projects_info = config_json.get('projects', {})
 
-    if os.path.isfile("{0}/steamupload/projectinfo.config".format(project_dir)):
-        config_json = json.loads(open("{0}/steamupload/projectinfo.config".format(project_dir), "r").read())
+    steamupload_projectinfo_path = os.path.join(project_dir, "steamupload", "projectinfo.config")
+    if os.path.isfile(steamupload_projectinfo_path):
+        config_json = json.loads(open(steamupload_projectinfo_path, "r").read())
         project_app_id = config_json.get('appid', '')
         project_depot_id = config_json.get('depotid', '')
         project_depot_id_dlc = config_json.get('dlc', {})
@@ -104,9 +105,9 @@ init python:
         project_depot_id_dlc = {}
 
         project_name = project_to_load
-        project_dir = '{0}/{1}'.format(root_root_dir, project_name)
-        if not os.path.isdir("{0}/steamupload".format(project_dir)):
-            os.makedirs("{0}/steamupload".format(project_dir))
+        project_dir = os.path.join(root_root_dir, project_name)
+        if not os.path.isdir(os.path.join(project_dir, "steamupload")):
+            os.makedirs(os.path.join(project_dir, "steamupload"))
         project_parent_name = project_name[:-len('-dists')]
         project_parent_name = project_parent_name[:project_parent_name.rindex('-')]
 
@@ -114,7 +115,7 @@ init python:
         project_dlc_files = []
         project_depot_id_dlc = {}
         for g in os.listdir(project_dir):
-            f = '{0}/{1}'.format(project_dir, g)
+            f = os.path.join(project_dir, g)
             if os.path.isfile(f) and g.endswith('-market.zip'):
                 project_build_file = g
             elif os.path.isdir(f) and g.endswith('-dlc'):
@@ -124,8 +125,9 @@ init python:
 
         project_app_id = projects_info.get(project_parent_name,{}).get('appid','')
         project_depot_id = projects_info.get(project_parent_name,{}).get('depotid','')
-        if os.path.isfile("{0}/steamupload/projectinfo.config".format(project_dir)):
-            config_json = json.loads(open("{0}/steamupload/projectinfo.config".format(project_dir), "r").read())
+        steamupload_projectinfo_path = os.path.join(project_dir, "steamupload", "projectinfo.config")
+        if os.path.isfile(steamupload_projectinfo_path):
+            config_json = json.loads(open(steamupload_projectinfo_path, "r").read())
             project_app_id = config_json.get('appid', project_app_id)
             project_depot_id = config_json.get('depotid', project_depot_id)
             project_depot_id_dlc = config_json.get('dlc', {})
@@ -154,13 +156,13 @@ init python:
         global app_depotline_template, app_template, depot_template
         global steam_username, steam_password, uploading_message, is_running, is_steamguard
 
-        if not os.path.isdir("{0}/SteamPipeContentBuilder".format(root_root_dir)):
-            shutil.copytree("{0}/SteamPipeContentBuilder".format(root_dir), "{0}/SteamPipeContentBuilder".format(root_root_dir))
+        if not os.path.isdir(os.path.join(root_root_dir, "SteamPipeContentBuilder")):
+            shutil.copytree(os.path.join(root_dir, "SteamPipeContentBuilder"), os.path.join(root_root_dir, "SteamPipeContentBuilder"))
 
-        build_dir = "{0}/steamupload".format(project_dir)
-        scripts_dir = "{0}/steamupload/scripts".format(project_dir)
-        output_dir = "{0}/steamupload/output".format(project_dir)
-        content_dir = "{0}/steamupload/content".format(project_dir)
+        build_dir = os.path.join(project_dir, "steamupload")
+        scripts_dir = os.path.join(project_dir, "steamupload", "scripts")
+        output_dir = os.path.join(project_dir, "steamupload", "output")
+        content_dir = os.path.join(project_dir, "steamupload", "content")
         if os.path.isdir(scripts_dir):
             shutil.rmtree(scripts_dir)
         os.makedirs(scripts_dir)
@@ -170,9 +172,9 @@ init python:
             shutil.rmtree(content_dir)
         os.makedirs(content_dir)
 
-        app_file_depotlist = app_depotline_template.format(depotid=project_depot_id, vdfpath="{0}/depot_{1}.vdf".format(scripts_dir, project_depot_id))
+        app_file_depotlist = app_depotline_template.format(depotid=project_depot_id, vdfpath=os.path.join(scripts_dir, "depot_" + project_depot_id + ".vdf"))
         for k in project_depot_id_dlc:
-            app_file_depotlist += app_depotline_template.format(depotid=project_depot_id_dlc[k], vdfpath="{0}/depot_{1}.vdf".format(scripts_dir, project_depot_id_dlc[k]))
+            app_file_depotlist += app_depotline_template.format(depotid=project_depot_id_dlc[k], vdfpath=os.path.join(scripts_dir, "depot_" + project_depot_id_dlc[k] + ".vdf"))
         open("{0}/app_{1}.vdf".format(scripts_dir, project_app_id), "w").write(app_template.format(
             appid=project_app_id,
             appname=project_name,
