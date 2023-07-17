@@ -147,7 +147,10 @@ init python:
                 return False
         return True
 
-    def SteamUploader_Execute():
+    def SteamUploader_GenerateOnly():
+        SteamUploader_Execute(False)
+
+    def SteamUploader_Execute(upload=True):
         global project_name, project_dir, root_dir, root_root_dir
         global project_build_file, project_dlc_files
         global project_app_id, project_depot_id, project_depot_id_dlc
@@ -161,6 +164,7 @@ init python:
         scripts_dir = "{0}/steamupload/scripts".format(project_dir)
         output_dir = "{0}/steamupload/output".format(project_dir)
         content_dir = "{0}/steamupload/content".format(project_dir)
+        contentfiles_dir = "{0}/steamupload/content/{1}".format(project_dir, project_build_file[:-4])
         if os.path.isdir(scripts_dir):
             shutil.rmtree(scripts_dir)
         os.makedirs(scripts_dir)
@@ -186,7 +190,7 @@ init python:
             contentpath="{0}/{1}".format(content_dir, project_build_file[:-4]))
         )
         with zipfile.ZipFile("{0}/{1}".format(project_dir, project_build_file), 'r') as zipObj:
-           zipObj.extractall(content_dir)
+           zipObj.extractall(contentfiles_dir)
 
         i = 0
         for dlc in project_dlc_files:
@@ -198,32 +202,36 @@ init python:
             )
             shutil.copytree("{0}/{1}".format(project_dir, dlc), "{0}/{1}".format(content_dir, dlc))
 
-        uploading_message = "Scripts generation done!\n\nUploading now..."
-        renpy.restart_interaction()
+        if upload:
+            uploading_message = "Scripts generation done!\n\nUploading now..."
+            renpy.restart_interaction()
 
-        if platform.system() == "Windows":
-            builder_path = '{0}/SteamPipeContentBuilder/builder/steamcmd.exe"'.format(root_root_dir)
-            i = builder_path.index(':') + 1
-            builder_path = builder_path[:i] + '"' + builder_path[i:]
-            command = [builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit"]
-        elif platform.system() == "Darwin":
-            builder_path = '"{0}/SteamPipeContentBuilder/builder_osx/steamcmd.sh"'.format(root_root_dir)
-            steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
-            command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
-        else:
-            builder_path = '"{0}/SteamPipeContentBuilder/builder_linux/steamcmd.sh"'.format(root_root_dir)
-            steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
-            command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
+            if platform.system() == "Windows":
+                builder_path = '{0}/SteamPipeContentBuilder/builder/steamcmd.exe"'.format(root_root_dir)
+                i = builder_path.index(':') + 1
+                builder_path = builder_path[:i] + '"' + builder_path[i:]
+                command = [builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit"]
+            elif platform.system() == "Darwin":
+                builder_path = '"{0}/SteamPipeContentBuilder/builder_osx/steamcmd.sh"'.format(root_root_dir)
+                steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
+                command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
+            else:
+                builder_path = '"{0}/SteamPipeContentBuilder/builder_linux/steamcmd.sh"'.format(root_root_dir)
+                steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
+                command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
 
-        return_code = os.system(' '.join(command).replace('\\', '/'))
-        if return_code == 1280:
-            uploading_message = "Steam Guard requires a code sent to your email.".format(return_code)
-            is_steamguard = True
-        elif return_code == 0:
-            uploading_message = "Done! Upload was successful.".format(return_code)
-            is_running = False
+            return_code = os.system(' '.join(command).replace('\\', '/'))
+            if return_code == 1280:
+                uploading_message = "Steam Guard requires a code sent to your email.".format(return_code)
+                is_steamguard = True
+            elif return_code == 0:
+                uploading_message = "Done! Upload was successful.".format(return_code)
+                is_running = False
+            else:
+                uploading_message = "Error: return code {0}".format(return_code)
+                is_running = False
         else:
-            uploading_message = "Error: return code {0}".format(return_code)
+            uploading_message = "Scripts generation done! Files in: \n\n" + build_dir
             is_running = False
         renpy.restart_interaction()
 
@@ -321,6 +329,15 @@ init python:
                 config_json = json.loads(open("{0}/steamuploader.config".format(root_dir), "r").read())
             config_json['password'] = steam_password
             open("{0}/steamuploader.config".format(root_dir), "w").write(json.dumps(config_json))
+
+    class SteamUploader_DoGenerateOnly:
+        def __call__(self):
+            global uploading_message, is_running
+
+            uploading_message = "Generating files...\n\nPlease wait..."
+            is_running = True
+            renpy.show_screen("steam_generating")
+            renpy.restart_interaction()
 
     class SteamUploader_DoUpload:
         def __call__(self):
@@ -491,7 +508,7 @@ screen steam_uploader_main:
 
         if SteamUploader_CanUpload():
             hbox:
-                align (0.5, 0.9)
+                align (0.5, 0.85)
                 spacing 5
                 fixed:
                     xysize (120, 35)
@@ -530,7 +547,22 @@ screen steam_uploader_main:
                             align (0.5, 0.5)
                             action SteamUploader_ChangeCurrentEditing("password")
 
-                null width 30
+            hbox:
+                align (0.5, 0.945)
+                spacing 5
+                button:
+                    background Solid("222")
+                    hover_background Solid("225e")
+                    xysize (250, 50)
+                    margin (0,0)
+                    padding (0,0)
+                    yoffset -10
+                    action [ SteamUploader_DoGenerateOnly() ]
+                    text "GENERATE ONLY":
+                        size 20
+                        color "fff"
+                        align (0.5, 0.5)
+                        text_align 0.5
                 button:
                     background Solid("222")
                     hover_background Solid("225e")
@@ -647,6 +679,33 @@ screen steam_upload_uploading:
                         padding (0,0)
                         align (0.5, 0.8)
                         action Hide("steam_upload_uploading")
+                        text "Close":
+                            size 20
+                            color "fff"
+                            align (0.5, 0.5)
+                            text_align 0.5
+
+screen steam_generating:
+    timer 0.1 action SteamUploader_GenerateOnly
+    frame:
+        xysize (1.0, 1.0)
+        frame:
+            xysize (0.7, 0.7)
+            align (0.5, 0.5)
+            vbox:
+                spacing 50
+                align (0.5, 0.5)
+                label uploading_message:
+                    align (0.5, 0.5)
+                if not is_running:
+                    button:
+                        background Solid("222")
+                        hover_background Solid("225e")
+                        xysize (250, 50)
+                        margin (0,0)
+                        padding (0,0)
+                        align (0.5, 0.8)
+                        action Hide("steam_generating")
                         text "Close":
                             size 20
                             color "fff"
