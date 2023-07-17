@@ -175,30 +175,30 @@ init python:
         app_file_depotlist = app_depotline_template.format(depotid=project_depot_id, vdfpath=os.path.join(scripts_dir, "depot_" + project_depot_id + ".vdf"))
         for k in project_depot_id_dlc:
             app_file_depotlist += app_depotline_template.format(depotid=project_depot_id_dlc[k], vdfpath=os.path.join(scripts_dir, "depot_" + project_depot_id_dlc[k] + ".vdf"))
-        open("{0}/app_{1}.vdf".format(scripts_dir, project_app_id), "w").write(app_template.format(
+        open(os.path.join(scripts_dir, "app_" + project_app_id + ".vdf"), "w").write(app_template.format(
             appid=project_app_id,
             appname=project_name,
             outputpath=output_dir,
             depotlist=app_file_depotlist)
         )
 
-        open("{0}/depot_{1}.vdf".format(scripts_dir, project_depot_id), "w").write(depot_template.format(
+        open(os.path.join(scripts_dir, "depot_" + project_depot_id + ".vdf"), "w").write(depot_template.format(
             depotid=project_depot_id,
             depotname="{0} Content".format(content_dir),
-            contentpath="{0}/{1}".format(content_dir, project_build_file[:-4]))
+            contentpath=os.path.join(content_dir, project_build_file[:-4]))
         )
-        with zipfile.ZipFile("{0}/{1}".format(project_dir, project_build_file), 'r') as zipObj:
-           zipObj.extractall(content_dir)
+        with zipfile.ZipFile(os.path.join(project_dir, project_build_file), 'r') as zipObj:
+            zipObj.extractall(content_dir)
 
         i = 0
         for dlc in project_dlc_files:
             i += 1
-            open("{0}/depot_{1}.vdf".format(scripts_dir, project_depot_id_dlc[k]), "w").write(depot_template.format(
+            open(os.path.join(scripts_dir, "depot_" + project_depot_id_dlc[k] + ".vdf"), "w").write(depot_template.format(
                 depotid=project_depot_id_dlc[unicode(i)],
                 depotname=dlc,
-                contentpath="{0}/{1}".format(content_dir, dlc))
+                contentpath=os.path.join(content_dir, dlc))
             )
-            shutil.copytree("{0}/{1}".format(project_dir, dlc), "{0}/{1}".format(content_dir, dlc))
+            shutil.copytree(os.path.join(project_dir, dlc), os.path.join(content_dir, dlc))
 
         uploading_message = "Scripts generation done!\n\nUploading now..."
         renpy.restart_interaction()
@@ -217,6 +217,7 @@ init python:
             steampipe_output_path = '"{0}/steampipe_output.txt"'.format(output_dir)
             command = ["sh", builder_path, "+login", steam_username, steam_password, "+run_app_build_http", '"{0}/app_{1}.vdf"'.format(scripts_dir, project_app_id), "+quit", "2>&1", ">", steampipe_output_path]
 
+        # this runs steampipe
         return_code = os.system(' '.join(command).replace('\\', '/'))
         if return_code == 1280:
             uploading_message = "Steam Guard requires a code sent to your email.".format(return_code)
