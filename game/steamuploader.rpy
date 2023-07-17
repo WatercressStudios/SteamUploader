@@ -42,11 +42,13 @@ init python:
 
     root_dir = None
     for p in config.searchpath:
+        print("Searching for Renpy games path in... " + p)
         if p.endswith('/game'):
             root_dir = p[:-5]
-        elif p.endswith('\\\\game'):
-            root_dir = p[:-7]
+        elif p.endswith('\\game'):
+            root_dir = p[:-5]
     root_root_dir = os.path.abspath(root_dir+'/..')
+    print("Root dir is " + root_root_dir)
 
     project_list = []
     for p in os.listdir(root_root_dir):
